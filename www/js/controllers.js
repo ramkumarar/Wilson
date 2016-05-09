@@ -2,12 +2,7 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
 .controller('AuthCtrl', function($scope,config,AuthService,AccountSummaryService,VoiceService,$state,$window) {
 
-  /*$scope.data = {
-    authChallengeText: 'Identify Yourself by saying pass phrase',
-    messageInternalError : 'Oh no, Not able to reach the Cloud service',
-    messageAuthFailed : 'I dont recogonize you. Try again'
-  };*/
-
+  
   var credentials= [
       {
         userName: 'ramkumar@gmail.com',
@@ -100,14 +95,14 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
   function recognizeSpeech() {
 
-       var loginString='have a good day';
+      /* var loginString='have a good day';
      
        var isMatching=verifyPassword(loginString);
           if(isMatching) {
             login(loginString)
-          } 
+          } */
 
-      /*VoiceService.recognizeSpeech()
+      VoiceService.recognizeSpeech()
       .success(function(result){
        console.log('Voice Result' + result);          
           var isMatching=verifyPassword(result[0]);
@@ -121,20 +116,20 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
       })
       .error(function(errorMessage){
          console.log("Error message: " + errorMessage);
-      });      */
+      }); 
 
   }
 
   $scope.voiceLogin= function() {
     
 
-   /*VoiceService.doTextToSpeech($scope.data.authChallengeText)
+   VoiceService.doTextToSpeech($scope.data.authChallengeText)
    .success(recognizeSpeech)
    .error(function (reason) {
              // Handle the error case
-    });*/
+    });
          
-     recognizeSpeech();
+     //recognizeSpeech();
 
   }
   
