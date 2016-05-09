@@ -1,0 +1,81 @@
+/* Empty. Add your own CSS if you like */
+.circle{
+  border-radius: 50%;
+  margin: 0.15em;
+  font-size: 2em;
+  }
+.spacer {
+  margin: 1em;
+}
+
+.accountSpacer {
+  margin-left: 3.25em;
+}
+.centertext{
+     text-align:center;
+}
+a {
+      text-decoration:none !important;
+}
+
+accountcard {
+  margin : 0.5 em;
+  padding : 0.5 em;
+}
+.center{
+  display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -moz-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    -moz-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+
+/* Class Groups */
+.card-facebook {
+  border-radius: 6px;
+  box-shadow: 0px 0.5px 1px rgba(0,0,0,0.2);
+}
+
+.card-facebook h2 {
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.card-facebook p {
+  color: #999;
+  text-align: center;
+}
+
+.card-facebook .item-divider {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 300;
+  border-top: 1px solid #F3F3F3;
+  background-color: #FAFAFA;
+}
+
+
+
+
+
+
+
+
+

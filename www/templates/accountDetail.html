@@ -1,0 +1,55 @@
+<ion-view view-title="Account Detail">
+  <ion-pane class="background-color-grey"> 
+    <ion-content>     
+     <div class="row row-wrap">
+        <div class="col">         
+            <div class="card card-facebook margin-0">
+                <div>
+                  <span class="spacer">
+                      A/C Number
+                  </span>
+                  <span class="spacer">
+                     Available Balances
+                  </span>
+                <div>
+                  <span class="spacer">
+                     {{account.id}}
+                  </span>
+                  <span class="accountSpacer">
+                     {{account.balance.amount}}
+                     <i class="fa fa-gbp" aria-hidden="true"></i>
+                     <!--{{account.balance.currency}}-->
+                  </span>
+                 
+                
+            </div>         
+        </div>
+      </div>
+
+     <h4 class="centertext">Recent Transactions</h4>
+
+     <div class="list">
+        <div class="row row-wrap">
+          <div class="col" ng-repeat="transaction in transactions">         
+              <a class="item item-icon-right" href="#">
+                  <span class="spacer">
+                      {{transaction.other_account.holder.name}}
+                  </span>
+                  <span class="spacer">
+                      {{transaction.details.value.formattedamount}} 
+                      <i class="fa fa-gbp" aria-hidden="true"></i>
+                  </span>
+                  <span class="spacer">
+                      <i class="fa fa-minus-circle" aria-hidden="true" ng-if="transaction.details.value.debit===true"></i>
+                      <i class="fa fa-plus-circle" aria-hidden="true" ng-if="transaction.details.value.debit===false"></i>
+                  </span>
+                <i class="icon ion-ios-arrow-right"></i>
+
+            </a>
+          </div>
+         
+        </div>
+      </div>
+    </ion-content>
+    </ion-pane>
+</ion-view>

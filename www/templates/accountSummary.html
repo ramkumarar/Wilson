@@ -1,0 +1,19 @@
+<ion-view view-title="Accounts">
+  <ion-pane class="background-color-grey"> 
+    <ion-content>     
+      <div class="row row-wrap">
+        <div class="col" ng-repeat="account in accounts">         
+            <div class="card card-facebook margin-0">
+              <a class="item item-icon-left item-icon-right" href="#/accountDetail/{{account.id}}">
+                  <i class="icon ion-ios-briefcase"></i>
+                    {{account.id}}
+                  <i class="icon ion-ios-arrow-right"></i>
+               </a>
+
+            </div>
+         
+        </div>
+      </div>
+    </ion-content>
+    </ion-pane>
+</ion-view>
