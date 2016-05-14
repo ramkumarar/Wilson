@@ -60,6 +60,8 @@ app.config(function($stateProvider,$urlRouterProvider){
 
   $urlRouterProvider.otherwise('/login')
 
+  
+
 });
 
 
@@ -108,7 +110,6 @@ app.constant('config', {
       }
       
     ]
-
 });
 
 

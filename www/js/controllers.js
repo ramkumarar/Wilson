@@ -1,4 +1,4 @@
-angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.services','voicebankapp.ai.services','voicebankapp.voice.services','voicebankapp.storage.services'])
+angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.services','voicebankapp.ai.services','voicebankapp.voice.services','voicebankapp.storage.services','voicebankapp.otp.services','ngLodash'])
 
 .controller('AuthCtrl', function($scope,config,AuthService,AccountSummaryService,VoiceService,$state,$window) {
 
@@ -108,14 +108,14 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
 
   function recognizeSpeech() {
 
-      var loginString='have a good day';
+    /*  var loginString='have a good day';
      
        var isMatching=verifyPassword(loginString);
           if(isMatching) {
             login(loginString)
-          } 
+          } */
 
-      /*VoiceService.recognizeSpeech()
+      VoiceService.recognizeSpeech()
       .success(function(result){
        console.log('Voice Result' + result);          
           var isMatching=verifyPassword(result[0]);
@@ -129,20 +129,20 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
       })
       .error(function(errorMessage){
          console.log("Error message: " + errorMessage);
-      }); */
+      }); 
 
   }
 
   $scope.voiceLogin= function() {
     
 
-  /* VoiceService.doTextToSpeech($scope.data.authChallengeText)
+   VoiceService.doTextToSpeech($scope.data.authChallengeText)
    .success(recognizeSpeech)
    .error(function (reason) {
              // Handle the error case
-    });*/
+    });
          
-     recognizeSpeech();
+    // recognizeSpeech();
 
   }
   
@@ -195,7 +195,7 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
 
   $scope.transactions=transactions;
 })
-.controller('VoiceCtrl', function($scope,$window,VoiceService,NLQueryService,AccountDetailService,TransactionService,PaymentService,StorageService) {    
+.controller('VoiceCtrl', function($scope,$window,VoiceService,NLQueryService,AccountDetailService,TransactionService,PaymentService,StorageService,OTPService,OTPVertificationService,lodash) {    
  
 
   function getPayee(payeeName) {
@@ -206,7 +206,7 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
               selectedPayee={"bank" : "rbs","accountId" : "26376828"};
               break;       
 
-        default : selectedPayee={};
+        default : selectedPayee={"bank" : "rbs","accountId" : "26376828"};
       }
       return selectedPayee;    
   }
@@ -226,7 +226,7 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
       var responseSpeech=result.speech;
       var params=result.parameters;      
       
-      if(propScore > .89  &&  action.startsWith("BANK.")) {
+      if(propScore > .85  &&  action.startsWith("BANK.")) {
          doTextToSpeech(responseSpeech);  
          handleAction(action,params);
         
@@ -251,9 +251,12 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
               handlePaymentAction(params);
               break;
         case 'BANK.TRANSACTIONS':
-              handleTransactionAction(params)
+              handleTransactionAction(params);
               console.log('Action and Params ' + action + params);
               break;
+        case 'BANK.OTPAUTH' :
+              console.log('Action and Params ' + action + params);
+              doHighValuePayment(params); break;
 
         default : console.log('Action and Params ' + action + params);
       }
@@ -278,51 +281,98 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
          doTextToSpeech(message);         
        })
     }
-
+    
     function handleTransactionAction(params) {
+       var transPeriod = params.TransactionPeriod;
+       console.log('TransactionPeriod:: '+ transPeriod);       
        var accountId=$window.sessionStorage.getItem('userInfo-account');
        var transactions=TransactionService.getTransactions(accountId)
-       .then(function(response){
-       // var sortedTransactions=response.data.transactions.sort(function(a,b){return a.details.completed - b.details.completed});
-       console.log(response); 
-       })
-     
+       .then(function(response){          
+          var messageTemplate;
+          var replacements;
+
+          switch (transPeriod) {            
+            case 'last ':
+               messageTemplate='Your last transaction was a %transType% for an amount of %amount% GBP';
+               replacements={
+                      "%transType%" : response.data.transactions[0].details.value.amount>0 ? 'Credit' : 'Debit',
+                      "%amount%" : response.data.transactions[0].details.value.amount < 0 ? response.data.transactions[0].details.value.amount * -1 : response.data.transactions[0].details.value.amount
+                      };
+               break;
+            case 'week':
+                var last7DayStart = moment().startOf('day').subtract(1,'week');
+                var yesterdayEndOfRange =  moment().endOf('day').subtract(1,'day');
+                var totalTrans = response.data.transactions;
+                var filteredTrans = lodash.filter(totalTrans, function(transaction){ 
+                        return moment(transaction.details.completed).isBetween(last7DayStart,yesterdayEndOfRange);
+                });
+
+                var debitTrans = lodash.filter(filteredTrans, function(transaction){
+                    return transaction.details.value.amount >0;
+                });
+                var creditTrans = lodash.filter(filteredTrans, function(transaction){
+                    return transaction.details.value.amount <0;
+                });
+
+               messageTemplate='You have done %totalNumber% transactions. Of the  %totalNumber% transactions there are %debitCount%  debits and %creditCount% credits';
+               replacements={
+                      "%totalNumber%": filteredTrans.length,
+                      "%debitCount%": debitTrans.length ==0 ? '0' : debitTrans.length,
+                      "%creditCount%": creditTrans.length==0 ? '0' : creditTrans.length
+                }; 
+               break;
+
+            case 'default':
+                messageTemplate='I could not recognize you, please try again';
+                replacements={}; 
+               break;               
+         }
+
+       
+        var message=replace(messageTemplate,replacements);       
+        console.log(message);
+        doTextToSpeech(message);   
+       });              
     }
 
 
     function handlePaymentAction(params) {
        var fromAccountId=$window.sessionStorage.getItem('userInfo-account');
        var messageTemplate='Made a payment of  %amount% %currency% to %payeeName%';
-       var highValueChallengeMessage='Since this is high value payment, You need your one time password to complete the transaction';
-       //console.log('-------------------------' + JSON.stringify(params));
+       var highValueChallengeMessage='Since this is high value payment, You need your one time password to complete the transaction';       
        var payeeName=params['given-name'];
        var currency=params['unit-currency'];
        var payee=getPayee(payeeName);
-       //var amount=params['number'];
-       var amount=1001;
+       var amount=params['number'];
+
+       console.log('Payee Bank ' + payee.bank);
+       console.log('Payee Bank ' + payee.accountId);
+       console.log('Payee amount ' + payee.amount);
        
        var transaction=PaymentService.makePayment(fromAccountId,payee.bank,payee.accountId,amount)
            .then(function(response) {
-            console.log('-------------------------' + JSON.stringify(response));
+            //console.log('-------------------------' + JSON.stringify(response));
             if(response.data.status === 'COMPLETED') {
               var replacements={
                               "%amount%" : amount ,
-                              "%currency%": currency,
+                              "%currency%": 'GBP',
                               "%payeeName%" : payeeName
                               };
               var message=replace(messageTemplate,replacements);
               console.log(message);
-             //doTextToSpeech(message);     
-            } else if (response.status === 'INITIATED') {
+             doTextToSpeech(message);     
+            } else if (response.data.status === 'INITIATED') {
               console.log(highValueChallengeMessage);
-              StorageService.storePaymentTxId(response.data.id,response.data.challenge.id)
-              .then(function(response){
-                console.log('----------Done-----------');
-              });
-              
-
               //doTextToSpeech(highValueChallengeMessage); 
-
+              var transactionId=response.data.id;
+              var challengeId=response.data.challenge.id;
+              StorageService.storePaymentTxId(transactionId,challengeId)
+              .then(function(response){
+                 console.log('Before Sending Message ---------------');
+                 var challengeResponse="123345";
+                 doHighValuePayment(challengeResponse)
+                // OTPService.sendAuthCode(transactionId,amount);
+              });
 
             } else {
                //Say Failure
@@ -332,8 +382,18 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
             
       }
 
-      function doHighValuePayment(params) {
+      function doHighValuePayment(params) { 
 
+
+        var fromAccountId=$window.sessionStorage.getItem('userInfo-account');       
+        var transactionId=StorageService.getInflightPayment().paymentTransactionId;
+        var challengeId=StorageService.getInflightPayment().challengeId;
+        var challengeResponse="12345";
+
+        OTPVertificationService.validateAuthCode(fromAccountId,transactionId,challengeId,challengeResponse)
+        .then(function(response) {
+          console.log("Your Payment Transfer is now complete")
+        })
       }
       
      
@@ -347,9 +407,9 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
 
         };
 
-     /* VoiceService.doTextToSpeech(text)
+      VoiceService.doTextToSpeech(text)
        .success(handleSuccess)
-       .error(handleFailure);    */
+       .error(handleFailure);    
     }
 
     function handleNLQuery(command) {
@@ -363,17 +423,17 @@ angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.ser
      })
     }
 
-    /*VoiceService.doTextToSpeech(initText)
+    VoiceService.doTextToSpeech(initText)
     .success(function () {
         VoiceService.recognizeSpeech()
           .success(function(result){
               console.log('Voice Result' + result);   
               handleNLQuery(result[0]);              
           })                  
-     });*/
+     });
      
-     var query='Please transfer 2 pounds to Rakesh';
-     handleNLQuery(query);
+     //var query='Password is rocket science';
+    // handleNLQuery(query);
 
 
 }

@@ -11,14 +11,12 @@ angular.module('voicebankapp.storage.services', [])
        var promise=deferred.promise;
 
        setTimeout(function(){
-        window.localStorage.setItem ("payment-tx-id", paymentId);
-        window.localStorage.setItem ("payment-chal-id", challengeId);
+        window.sessionStorage.setItem ("payment-tx-id", paymentId);
+        window.sessionStorage.setItem ("payment-chal-id", challengeId);
         deferred.resolve()
       }, 0)
-      return deferred.promise();
-
+      
       promise.success = function(fn) {
-
                 promise.then(fn);
                 return promise;
        }
@@ -29,6 +27,17 @@ angular.module('voicebankapp.storage.services', [])
 
        return promise;
      
+    },
+
+    getInflightPayment: function() {
+       var paymentTransactionId=window.sessionStorage.getItem ("payment-tx-id");
+       var challengeId=window.sessionStorage.getItem ("payment-chal-id");
+       return {
+        "paymentTransactionId" :paymentTransactionId,
+        "challengeId":challengeId
+       }
+     
     }
+  
   };
 });

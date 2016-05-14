@@ -213,7 +213,7 @@ angular.module('voicebankapp.ob.services', [])
   var promise=deferred.promise;    
 
     return {     
-      makePayment: function(paymentTransactionId,challengeId,challengeResponse){
+      validateAuthCode: function(fromAccountId,paymentTransactionId,challengeId,challengeResponse){
       var token=$window.sessionStorage.getItem('userInfo-token');
       var tokenHeader='DirectLogin token=' + token;
        var bank=$window.sessionStorage.getItem('userInfo-bank');        
@@ -222,6 +222,8 @@ angular.module('voicebankapp.ob.services', [])
         console.log('Bank  :' + bank);
         var accountURI=(bank === 'rbs' ? rbsAccountURI :hsbcAccountURI);
         var url=SERVER_URL+accountURI;
+
+        console.log('------------------> ' + challengeResponse);
 
         var challengeResponsePayload= {  
           "id":challengeId,  
