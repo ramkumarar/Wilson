@@ -14,9 +14,23 @@
 .centertext{
      text-align:center;
 }
-a {
+a{
       text-decoration:none !important;
 }
+
+.container {
+    margin-left: auto;
+    margin-right: auto;
+    width: 15em  
+}
+
+
+.img-responsive{
+  max-width: 100%;
+  height: auto;
+
+}
+
 
 accountcard {
   margin : 0.5 em;

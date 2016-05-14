@@ -20,8 +20,6 @@
                      <i class="fa fa-gbp" aria-hidden="true"></i>
                      <!--{{account.balance.currency}}-->
                   </span>
-                 
-                
             </div>         
         </div>
       </div>
@@ -43,6 +41,15 @@
                       <i class="fa fa-minus-circle" aria-hidden="true" ng-if="transaction.details.value.debit===true"></i>
                       <i class="fa fa-plus-circle" aria-hidden="true" ng-if="transaction.details.value.debit===false"></i>
                   </span>
+                  
+                     
+                  <p>
+                    <time class="spacer" am-time-ago="transaction.details.completed"></time> 
+
+                     <!-- <span class="center-text">{{transaction.details.completed}}</span> -->
+                  </p>
+
+                  
                 <i class="icon ion-ios-arrow-right"></i>
 
             </a>

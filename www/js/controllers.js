@@ -1,4 +1,4 @@
-angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voicebankapp.ai.services','voicebankapp.voice.services'])
+angular.module('voicebankapp.controllers', ['angularMoment','voicebankapp.ob.services','voicebankapp.ai.services','voicebankapp.voice.services','voicebankapp.storage.services'])
 
 .controller('AuthCtrl', function($scope,config,AuthService,AccountSummaryService,VoiceService,$state,$window) {
 
@@ -13,6 +13,10 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
         password: 'rbs#1234'
       },
       {
+        userName: 'rakesh@gmail.com',
+        password: 'rbs#1234'
+      },
+      {
         userName: 'unidentified'       
       }
     ];
@@ -24,16 +28,24 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
       'HAVE A GOOD DAY': function () {
         return credentials[1];
       },
-      'defaultMatch': function () {
+      'DONT BE EVIL': function() {
         return credentials[2];
+      },
+      'defaultMatch': function () {
+        return credentials[3];
       }
     };
 
+
+
   $scope.data =config.authMessages;  
+
+
 
     
 
   function getUser (passPhrase) {
+   
     return (users[passPhrase.toUpperCase()] || users['defaultMatch'])();
   }
 
@@ -42,6 +54,7 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
     switch(userName) {
       case 'ramkumar@gmail.com' :  bank="rbs";break;
       case 'stan@gmail.com'     :  bank="hsbc-test";break;
+      case 'rakesh@gmail.com'     :  bank="rbs";break;
       default: bank='rbs';
     }
     return bank;
@@ -65,7 +78,7 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
         //Not able to login to OpenBank Service
      }) 
 
-    console.log(user);
+  //  console.log(user);
   }
 
   function verifyPassword(authChallengeResponse) {
@@ -95,14 +108,14 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
   function recognizeSpeech() {
 
-      /* var loginString='have a good day';
+      var loginString='have a good day';
      
        var isMatching=verifyPassword(loginString);
           if(isMatching) {
             login(loginString)
-          } */
+          } 
 
-      VoiceService.recognizeSpeech()
+      /*VoiceService.recognizeSpeech()
       .success(function(result){
        console.log('Voice Result' + result);          
           var isMatching=verifyPassword(result[0]);
@@ -116,20 +129,20 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
       })
       .error(function(errorMessage){
          console.log("Error message: " + errorMessage);
-      }); 
+      }); */
 
   }
 
   $scope.voiceLogin= function() {
     
 
-   VoiceService.doTextToSpeech($scope.data.authChallengeText)
+  /* VoiceService.doTextToSpeech($scope.data.authChallengeText)
    .success(recognizeSpeech)
    .error(function (reason) {
              // Handle the error case
-    });
+    });*/
          
-     //recognizeSpeech();
+     recognizeSpeech();
 
   }
   
@@ -165,6 +178,7 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
   var accountId=$state.params.id;  
   $scope.account = OBAccount.data;
+  console.log(OBTransactions);
 
   var transactions=OBTransactions.data.transactions.map(function(transaction){
      if (transaction.details.value.amount.startsWith('-') ) {
@@ -181,7 +195,22 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
   $scope.transactions=transactions;
 })
-.controller('VoiceCtrl', function($scope,$window,VoiceService,NLQueryService,AccountDetailService) {  
+.controller('VoiceCtrl', function($scope,$window,VoiceService,NLQueryService,AccountDetailService,TransactionService,PaymentService,StorageService) {    
+ 
+
+  function getPayee(payeeName) {
+    var selectedPayee;
+
+    switch(payeeName.toUpperCase()) {
+        case 'RAKESH' : 
+              selectedPayee={"bank" : "rbs","accountId" : "26376828"};
+              break;       
+
+        default : selectedPayee={};
+      }
+      return selectedPayee;    
+  }
+ 
 
   $scope.actionVoiceCommand=function() {   
     //var command="Get my account Balance";
@@ -211,14 +240,21 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
     }
 
+
     function handleAction(action,params) {
       switch(action) {
         case 'BANK.BALANCE_ENQUIRY' : 
               handleAccountAction(params);
               break;
-        case 'BANK.PAYMENT':
+        case 'BANK.MAKE_PAYMENT':
+              console.log('Action and Params ' + action + params);
+              handlePaymentAction(params);
+              break;
+        case 'BANK.TRANSACTIONS':
+              handleTransactionAction(params)
               console.log('Action and Params ' + action + params);
               break;
+
         default : console.log('Action and Params ' + action + params);
       }
     }
@@ -243,6 +279,66 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
        })
     }
 
+    function handleTransactionAction(params) {
+       var accountId=$window.sessionStorage.getItem('userInfo-account');
+       var transactions=TransactionService.getTransactions(accountId)
+       .then(function(response){
+       // var sortedTransactions=response.data.transactions.sort(function(a,b){return a.details.completed - b.details.completed});
+       console.log(response); 
+       })
+     
+    }
+
+
+    function handlePaymentAction(params) {
+       var fromAccountId=$window.sessionStorage.getItem('userInfo-account');
+       var messageTemplate='Made a payment of  %amount% %currency% to %payeeName%';
+       var highValueChallengeMessage='Since this is high value payment, You need your one time password to complete the transaction';
+       //console.log('-------------------------' + JSON.stringify(params));
+       var payeeName=params['given-name'];
+       var currency=params['unit-currency'];
+       var payee=getPayee(payeeName);
+       //var amount=params['number'];
+       var amount=1001;
+       
+       var transaction=PaymentService.makePayment(fromAccountId,payee.bank,payee.accountId,amount)
+           .then(function(response) {
+            console.log('-------------------------' + JSON.stringify(response));
+            if(response.data.status === 'COMPLETED') {
+              var replacements={
+                              "%amount%" : amount ,
+                              "%currency%": currency,
+                              "%payeeName%" : payeeName
+                              };
+              var message=replace(messageTemplate,replacements);
+              console.log(message);
+             //doTextToSpeech(message);     
+            } else if (response.status === 'INITIATED') {
+              console.log(highValueChallengeMessage);
+              StorageService.storePaymentTxId(response.data.id,response.data.challenge.id)
+              .then(function(response){
+                console.log('----------Done-----------');
+              });
+              
+
+              //doTextToSpeech(highValueChallengeMessage); 
+
+
+            } else {
+               //Say Failure
+            }
+             
+            });
+            
+      }
+
+      function doHighValuePayment(params) {
+
+      }
+      
+     
+
+
     function doTextToSpeech(text) {
         var handleSuccess=function() {
 
@@ -251,15 +347,15 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
 
         };
 
-      VoiceService.doTextToSpeech(text)
+     /* VoiceService.doTextToSpeech(text)
        .success(handleSuccess)
-       .error(handleFailure);    
+       .error(handleFailure);    */
     }
 
     function handleNLQuery(command) {
       NLQueryService.query(command)
       .success(function(response){
-        //console.log(JSON.stringify(response.data));     
+        console.log(JSON.stringify(response.data));     
         
         handleQueryResponse(response.data.result)      
 
@@ -267,14 +363,18 @@ angular.module('voicebankapp.controllers', ['voicebankapp.ob.services','voiceban
      })
     }
 
-    VoiceService.doTextToSpeech(initText)
+    /*VoiceService.doTextToSpeech(initText)
     .success(function () {
         VoiceService.recognizeSpeech()
           .success(function(result){
               console.log('Voice Result' + result);   
               handleNLQuery(result[0]);              
           })                  
-     });
+     });*/
+     
+     var query='Please transfer 2 pounds to Rakesh';
+     handleNLQuery(query);
+
 
 }
 

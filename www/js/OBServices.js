@@ -149,37 +149,103 @@ angular.module('voicebankapp.ob.services', [])
       }
     };  
   
-});
-
-/*.factory('AccountSummaryService', function($http,$window) {
+})
+.factory('PaymentService',function($q,$http,$window) {
   // Might use a resource here that returns a JSON array
   var SERVER_URL ="https://apisandbox.openbankproject.com";
-  var accountURI='/obp/v2.0.0/my/banks/rbs/accounts';
-  var token=$window.sessionStorage.getItem('userInfo-token');
-  var tokenHeader='DirectLogin token=' + token;
-  var url=SERVER_URL+accountURI;
+  
 
-  var myData = null;
-    
-  var promise = $http({
-    method: 'GET', 
-    url: url,
-    headers: {'Authorization': tokenHeader}
-   })
-   .then(function successCallback(data){
-       myData = data;
-    });
 
-    return {
-      promise:promise,
-      setData: function (data) {
-          myData = data;
-      },
-      fetch: function () {
-          return myData;//.getSomeData();
+  var deferred=$q.defer();
+  var promise=deferred.promise;    
+
+    return {     
+      makePayment: function(fromAccountId,toBankId,toAccountId,amount){
+      var token=$window.sessionStorage.getItem('userInfo-token');
+      var tokenHeader='DirectLogin token=' + token;
+       var bank=$window.sessionStorage.getItem('userInfo-bank');        
+        var rbsAccountURI='/obp/v2.0.0/banks/rbs/accounts/' + fromAccountId +'/owner/transaction-request-types/SANDBOX_TAN/transaction-requests';
+        var hsbcAccountURI='/obp/v2.0.0/banks/hsbc-test/accounts/' + fromAccountId +'/owner/transaction-request-types/SANDBOX_TAN/transaction-requests';
+        console.log('Bank  :' + bank);
+        var accountURI=(bank === 'rbs' ? rbsAccountURI :hsbcAccountURI);
+        var url=SERVER_URL+accountURI;
+
+        var paymentPayload= {
+          "to": {
+            "bank_id": toBankId,
+            "account_id": toAccountId
+          },
+          "value": {
+            "currency": "GBP",
+            "amount": amount
+          },
+          "description": "Transaction created by voice banking services",
+          "challenge_type": "SANDBOX_TAN"
+        }
+
+        console.log('Payment payload ' + JSON.stringify(paymentPayload)) ;
+
+        $http({
+          method: 'POST', 
+          url: url,
+          headers: {'Authorization': tokenHeader},
+          data: paymentPayload
+         })
+         .then(
+           function successCallback(response){
+             deferred.resolve(response);
+           }
+          ,function errorCallback(response) {
+             deferred.reject('Account Detail Cannot be fetched.');
+          });
+          return promise;
       }
     };  
   
-})*/
+})
+.factory('OTPVertificationService',function($q,$http,$window) {
+  // Might use a resource here that returns a JSON array
+  var SERVER_URL ="https://apisandbox.openbankproject.com";
+  
 
+
+  var deferred=$q.defer();
+  var promise=deferred.promise;    
+
+    return {     
+      makePayment: function(paymentTransactionId,challengeId,challengeResponse){
+      var token=$window.sessionStorage.getItem('userInfo-token');
+      var tokenHeader='DirectLogin token=' + token;
+       var bank=$window.sessionStorage.getItem('userInfo-bank');        
+        var rbsAccountURI='/obp/v2.0.0/banks/rbs/accounts/' + fromAccountId +'/owner/transaction-request-types/SANDBOX_TAN/transaction-requests/' + paymentTransactionId + '/challenge';
+        var hsbcAccountURI='/obp/v2.0.0/banks/hsbc-test/accounts/' + fromAccountId +'/owner/transaction-request-types/SANDBOX_TAN/transaction-requests/' + paymentTransactionId + '/challenge';
+        console.log('Bank  :' + bank);
+        var accountURI=(bank === 'rbs' ? rbsAccountURI :hsbcAccountURI);
+        var url=SERVER_URL+accountURI;
+
+        var challengeResponsePayload= {  
+          "id":challengeId,  
+          "answer":challengeResponse
+        }
+
+        console.log('Challenge payload ' + JSON.stringify(challengeResponsePayload)) ;
+
+        $http({
+          method: 'POST', 
+          url: url,
+          headers: {'Authorization': tokenHeader},
+          data: challengeResponsePayload
+         })
+         .then(
+           function successCallback(response){
+             deferred.resolve(response);
+           }
+          ,function errorCallback(response) {
+             deferred.reject('Account Detail Cannot be fetched.');
+          });
+          return promise;
+      }
+    };  
+  
+});
 
